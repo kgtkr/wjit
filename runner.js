@@ -23,21 +23,7 @@ const wasmPath = "target/wasm32-unknown-unknown/debug/wjit.wasm";
     return buf.slice(ptr, ptr + len);
   }
 
-  const code = `
-  func main(x) {
-    println(x);
-    var x = fib(10) in
-    println(x);
-  }
-
-  func fib(n) {
-    if (n < 2) {
-      n;
-    } else {
-      fib(n - 1) + fib(n - 2);
-    };
-  }
-  `;
+  const code = await fs.readFile(process.argv[2], { encoding: "utf8" });
 
   const compilerPtr = wasmInstance.exports.make_compiler(stringToPtr(code));
   const skeletonBinLenPtr = wasmInstance.exports.alloc(4);
@@ -81,5 +67,5 @@ const wasmPath = "target/wasm32-unknown-unknown/debug/wjit.wasm";
   ).instance;
   table = skeletonInstance.exports._table;
 
-  skeletonInstance.exports.main(1);
+  skeletonInstance.exports.main();
 })();
