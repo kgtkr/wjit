@@ -2,6 +2,10 @@ func main() {
     var x = fib(10) in
     println(x);
     func_a(10);
+    println(is_prime(3));
+    println(is_prime(4));
+    println(is_prime(5));
+    println(is_prime(6));
 }
 
 func fib(n) {
@@ -27,5 +31,23 @@ func func_b(x) {
         x;
     } else {
         func_a(x - 1);
+    };
+}
+
+func is_prime(n) {
+    if (n <= 1) {
+        0;
+    } else {
+        var result = 1 in
+        var i = 2 in
+        {
+            while (i * i <= n) {
+                if (n % i == 0) {
+                    result = 0;
+                } else {};
+                i = i + 1;
+            };
+            result;
+        };
     };
 }
