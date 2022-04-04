@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 
 const wasmPath = "target/wasm32-unknown-unknown/debug/wjit.wasm";
+const dumpWasm = process.argv.includes("--dump-wasm");
 
 (async () => {
   const wasmBin = await fs.readFile(wasmPath);
@@ -35,6 +36,10 @@ const wasmPath = "target/wasm32-unknown-unknown/debug/wjit.wasm";
   const skeletonBinLen = memoryView.getInt32(skeletonBinLenPtr, true);
   const skeletonBin = ptrToBuffer(skeletonBinPtr, skeletonBinLen);
 
+  if (dumpWasm) {
+    await fs.writeFile(`dump_wasm/skeleton.wasm`, Buffer.from(skeletonBin));
+  }
+
   let table;
   const skeletonInstance = (
     await WebAssembly.instantiate(skeletonBin, {
@@ -50,6 +55,12 @@ const wasmPath = "target/wasm32-unknown-unknown/debug/wjit.wasm";
           const memoryView = new DataView(wasmInstance.exports.memory.buffer);
           const funcBinLen = memoryView.getInt32(funcBinLenPtr, true);
           const funcBin = ptrToBuffer(funcBinPtr, funcBinLen);
+          if (dumpWasm) {
+            require("fs").writeFileSync(
+              `dump_wasm/${idx}.wasm`,
+              Buffer.from(funcBin)
+            );
+          }
           const funcModule = new WebAssembly.Module(funcBin);
           new WebAssembly.Instance(funcModule, {
             env: {
