@@ -308,7 +308,11 @@ fn expr9(input: &[Token]) -> IResult<&[Token], Expr> {
         expr8,
     ))(input)?;
     let (last, init) = match exprs.split_last() {
-        Some((last, init)) => (last.clone(), init.clone()),
+        Some((last, init)) => (last.clone(), {
+            let mut exprs = init.to_vec();
+            exprs.insert(0, expr);
+            exprs
+        }),
         None => return Ok((input, expr)),
     };
     Ok((

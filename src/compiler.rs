@@ -246,7 +246,8 @@ impl Compiler {
             Expr::Assign(ident, expr) => {
                 self.compile_expr(ctx, expr);
                 let local_idx = ctx.locals.get(ident).cloned().unwrap();
-                ctx.instrs.push(Instruction::TeeLocal(local_idx));
+                ctx.instrs.push(Instruction::SetLocal(local_idx));
+                ctx.instrs.push(Instruction::I32Const(0));
             }
             Expr::Call(ident, exprs) => {
                 for expr in exprs {
@@ -269,6 +270,7 @@ impl Compiler {
                 ctx.instrs.push(Instruction::Block(BlockType::NoResult));
                 ctx.instrs.push(Instruction::Loop(BlockType::NoResult));
                 self.compile_expr(ctx, cond);
+                ctx.instrs.push(Instruction::I32Eqz);
                 ctx.instrs.push(Instruction::BrIf(1));
                 self.compile_expr(ctx, body);
                 ctx.instrs.push(Instruction::Drop);
