@@ -1,6 +1,7 @@
 func main() {
     var x = fib(10) in
     println(x);
+    func_a(10);
 }
 
 func fib(n) {
@@ -8,5 +9,23 @@ func fib(n) {
         n;
     } else {
         fib(n - 1) + fib(n - 2);
+    };
+}
+
+func func_a(x) {
+    println(x);
+    if (x <= 0) {
+        x;
+    } else {
+        func_b(x - 1);
+    };
+}
+
+func func_b(x) {
+    println(x);
+    if (x <= 0) {
+        x;
+    } else {
+        func_a(x - 1);
     };
 }
