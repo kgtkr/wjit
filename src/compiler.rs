@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::ast;
 use parity_wasm::elements::{
-    self, BlockType, CodeSection, ElementSection, ElementSegment, ExportEntry, ExportSection,
-    External, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection, InitExpr,
+    BlockType, CodeSection, ElementSection, ElementSegment, ExportEntry, ExportSection, External,
+    Func, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection, InitExpr,
     Instruction, Instructions, Internal, Local, Module, Section, TableSection, TableType, Type,
     TypeSection, ValueType,
 };
@@ -86,7 +86,7 @@ impl Compiler {
                 self.module
                     .funcs
                     .iter()
-                    .map(|func| elements::Func::new(func.args.len() as u32))
+                    .map(|func| Func::new(func.args.len() as u32))
                     .collect(),
             )),
             Section::Table(TableSection::with_entries(vec![TableType::new(
@@ -166,7 +166,7 @@ impl Compiler {
                     External::Table(TableType::new(self.module.funcs.len() as u32, None)),
                 ),
             ])),
-            Section::Function(FunctionSection::with_entries(vec![elements::Func::new(
+            Section::Function(FunctionSection::with_entries(vec![Func::new(
                 func.args.len() as u32,
             )])),
             Section::Element(ElementSection::with_entries(vec![ElementSegment::new(
