@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq, Clone)]
-pub struct Program {
+pub struct Module {
     pub funcs: Vec<Func>,
 }
 

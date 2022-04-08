@@ -426,12 +426,12 @@ fn func(input: &[Token]) -> IResult<&[Token], Func> {
     ))
 }
 
-fn program(input: &[Token]) -> IResult<&[Token], Program> {
+fn module(input: &[Token]) -> IResult<&[Token], Module> {
     let (input, funcs) = many0(func)(input)?;
 
-    Ok((input, Program { funcs }))
+    Ok((input, Module { funcs }))
 }
 
-pub fn parse(input: &[Token]) -> IResult<&[Token], Program> {
-    terminated(program, eof)(input)
+pub fn parse(input: &[Token]) -> IResult<&[Token], Module> {
+    terminated(module, eof)(input)
 }
