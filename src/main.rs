@@ -18,8 +18,8 @@ pub fn make_compiler(code: *mut c_char) -> *mut compiler::Compiler {
     let code = unsafe { CString::from_raw(code) };
     let code = code.into_string().unwrap();
     let tokens = tokenizer::tokenize(code.as_str()).unwrap().1;
-    let program = parser::parse(tokens.as_slice()).unwrap().1;
-    let compiler = compiler::Compiler::new(program).unwrap();
+    let module = parser::parse(tokens.as_slice()).unwrap().1;
+    let compiler = compiler::Compiler::new(module).unwrap();
 
     let result = Box::new(compiler);
     let result = Box::into_raw(result);
