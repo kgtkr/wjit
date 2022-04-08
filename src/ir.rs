@@ -10,6 +10,16 @@ pub struct IfInfo {
     pub if_end: usize,
 }
 
+impl IfInfo {
+    pub fn dummy() -> Self {
+        IfInfo {
+            if_: 0,
+            else_: 0,
+            if_end: 0,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct LoopInfo {
     pub loop_: usize,
@@ -17,9 +27,20 @@ pub struct LoopInfo {
     pub loop_end: usize,
 }
 
+impl LoopInfo {
+    pub fn dummy() -> Self {
+        LoopInfo {
+            loop_: 0,
+            loop_then: 0,
+            loop_end: 0,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Func {
     pub args_count: usize,
+    pub locals_count: usize,
     pub instrs: Vec<Instr>,
     pub if_infos: Vec<IfInfo>,
     pub loop_infos: Vec<LoopInfo>,
@@ -30,23 +51,19 @@ pub type IfId = usize;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Instr {
-    IntLiteral(i32),
+    IntConst(i32),
     VarRef(usize),
-    BinaryOp(BinaryOp),
-    PrefixOp(PrefixOp),
     Assign(usize),
-    Call(usize),
+    Call { func: usize, args_count: usize },
     If(IfId),
     Else(IfId),
-    EndIf(IfId),
+    IfEnd(IfId),
     Loop(LoopId),
     LoopThen(LoopId),
-    EndLoop(LoopId),
+    LoopEnd(LoopId),
     VarDef,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum BinaryOp {
+    Return,
+    Println,
     Add,
     Sub,
     Mul,
@@ -60,10 +77,7 @@ pub enum BinaryOp {
     Ne,
     And,
     Or,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum PrefixOp {
     Not,
     Minus,
+    Drop,
 }
