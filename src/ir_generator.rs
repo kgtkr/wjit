@@ -69,6 +69,7 @@ impl<'a> IrGenerator<'a> {
             instrs: state.instrs,
             if_infos: state.if_infos,
             loop_infos: state.loop_infos,
+            name: func.name.clone(),
         }
     }
 
@@ -128,9 +129,11 @@ impl<'a> IrGenerator<'a> {
                             args_count: exprs.len(),
                         });
                     }
-                    FuncRef::Builtin { kind } => {
-                        state.instrs.push(Instr::Println);
-                    }
+                    FuncRef::Builtin { kind } => match kind {
+                        BuiltinFunc::Println => {
+                            state.instrs.push(Instr::Println);
+                        }
+                    },
                 };
             }
             ast::Expr::While(cond, body) => {

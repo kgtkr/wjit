@@ -14,12 +14,25 @@ pub fn alloc(size: i32) -> *mut u8 {
 }
 
 #[no_mangle]
-pub fn make_compiler(code: *mut c_char) -> *mut compiler::Compiler {
-    let code = unsafe { CString::from_raw(code) };
+pub unsafe fn make_ir_module(code: *mut c_char) -> *mut ir::Module {
+    let code = CString::from_raw(code);
     let code = code.into_string().unwrap();
     let tokens = tokenizer::tokenize(code.as_str()).unwrap().1;
     let module = parser::parse(tokens.as_slice()).unwrap().1;
-    let compiler = compiler::Compiler::new(module).unwrap();
+    let module = ir_generator::generate(&module);
+
+    let result = Box::new(module);
+    let result = Box::into_raw(result);
+
+    std::mem::forget(result);
+
+    result
+}
+
+#[no_mangle]
+pub unsafe fn make_compiler<'a>(module: *mut ir::Module) -> *mut compiler::Compiler<'a> {
+    let module = &*module;
+    let compiler = compiler::Compiler::new(module);
 
     let result = Box::new(compiler);
     let result = Box::into_raw(result);
@@ -30,14 +43,12 @@ pub fn make_compiler(code: *mut c_char) -> *mut compiler::Compiler {
 }
 
 #[no_mangle]
-pub fn compile_skeleton(compiler: *mut compiler::Compiler, len: *mut i32) -> *const u8 {
-    let compiler = unsafe { &*compiler };
+pub unsafe fn compile_skeleton(compiler: *mut compiler::Compiler, len: *mut i32) -> *const u8 {
+    let compiler = &*compiler;
     let module = compiler.compile_skeleton();
     let buf = parity_wasm::serialize(module).unwrap();
     let result = buf.as_ptr();
-    unsafe {
-        *len = buf.len() as i32;
-    };
+    *len = buf.len() as i32;
 
     std::mem::forget(buf);
     result

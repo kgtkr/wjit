@@ -26,16 +26,18 @@ const dumpWasm = process.argv.includes("--dump-wasm");
 
   const code = await fs.readFile(process.argv[2], { encoding: "utf8" });
 
-  const compilerPtr = wasmInstance.exports.make_compiler(stringToPtr(code));
+  const irModulePtr = wasmInstance.exports.make_ir_module(stringToPtr(code));
+  const compilerPtr = wasmInstance.exports.make_compiler(irModulePtr);
+
   const skeletonBinLenPtr = wasmInstance.exports.alloc(4);
   const skeletonBinPtr = wasmInstance.exports.compile_skeleton(
     compilerPtr,
     skeletonBinLenPtr
   );
+
   const memoryView = new DataView(wasmInstance.exports.memory.buffer);
   const skeletonBinLen = memoryView.getInt32(skeletonBinLenPtr, true);
   const skeletonBin = ptrToBuffer(skeletonBinPtr, skeletonBinLen);
-
   if (dumpWasm) {
     await fs.writeFile(`dump_wasm/skeleton.wasm`, Buffer.from(skeletonBin));
   }

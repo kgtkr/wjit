@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use crate::ast;
+use crate::ir;
 use parity_wasm::elements::{
     BlockType, CodeSection, ElementSection, ElementSegment, ExportEntry, ExportSection, External,
     Func, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection, InitExpr,
@@ -10,17 +8,9 @@ use parity_wasm::elements::{
 
 #[derive(Debug, PartialEq, Clone)]
 
-pub struct Compiler {
-    module: ast::Module,
-    func_refs: HashMap<String, FuncRef>,
+pub struct Compiler<'a> {
+    module: &'a ir::Module,
     // typeはめんどくさいのでパラメータが0〜5のものをそれぞれindex 0〜5で
-}
-
-#[derive(Debug, PartialEq, Clone)]
-
-pub enum FuncRef {
-    UserDefined { module_idx: usize, table_idx: u32 },
-    Builtin { kind: BuiltinFunc, func_idx: u32 },
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -29,32 +19,9 @@ pub enum BuiltinFunc {
     Println,
 }
 
-impl Compiler {
-    pub fn new(module: ast::Module) -> Option<Self> {
-        let mut func_refs = HashMap::new();
-
-        func_refs.insert(
-            "println".to_string(),
-            FuncRef::Builtin {
-                kind: BuiltinFunc::Println,
-                func_idx: 0,
-            },
-        );
-
-        for (i, func) in module.funcs.iter().enumerate() {
-            match func_refs.insert(
-                func.name.clone(),
-                FuncRef::UserDefined {
-                    module_idx: i,
-                    table_idx: i as u32,
-                },
-            ) {
-                None => (),
-                _ => return None,
-            }
-        }
-
-        Some(Compiler { module, func_refs })
+impl<'a> Compiler<'a> {
+    pub fn new(module: &'a ir::Module) -> Self {
+        Compiler { module }
     }
 
     fn type_section() -> TypeSection {
@@ -86,7 +53,7 @@ impl Compiler {
                 self.module
                     .funcs
                     .iter()
-                    .map(|func| Func::new(func.args.len() as u32))
+                    .map(|func| Func::new(func.args_count as u32))
                     .collect(),
             )),
             Section::Table(TableSection::with_entries(vec![TableType::new(
@@ -135,14 +102,14 @@ impl Compiler {
             Instructions::new({
                 let mut instrs = Vec::new();
 
-                instrs.extend((0..func.args.len()).map(|i| Instruction::GetLocal(i as u32)));
+                instrs.extend((0..func.args_count).map(|i| Instruction::GetLocal(i as u32)));
 
                 instrs.extend(vec![
                     Instruction::I32Const(idx as i32),
-                    Instruction::Call(0),
+                    Instruction::Call(0), // compile
                     Instruction::Drop,
                     Instruction::I32Const(idx as i32),
-                    Instruction::CallIndirect(func.args.len() as u32, 0),
+                    Instruction::CallIndirect(func.args_count as u32, 0),
                     Instruction::End,
                 ]);
                 instrs
@@ -167,7 +134,7 @@ impl Compiler {
                 ),
             ])),
             Section::Function(FunctionSection::with_entries(vec![Func::new(
-                func.args.len() as u32,
+                func.args_count as u32,
             )])),
             Section::Element(ElementSection::with_entries(vec![ElementSegment::new(
                 0,
@@ -185,123 +152,82 @@ impl Compiler {
         let mut ctx = CompileCtx::new();
 
         let func = &self.module.funcs[idx];
-
-        for name in &func.args {
-            ctx.add_local(name.clone());
+        for instr in &func.instrs {
+            self.compile_instr(&mut ctx, instr);
         }
-
-        self.compile_expr(&mut ctx, &func.body);
         ctx.instrs.push(Instruction::End);
 
         FuncBody::new(
-            vec![Local::new(
-                ctx.local_count as u32 - func.args.len() as u32,
-                ValueType::I32,
-            )],
+            vec![Local::new(func.locals_count as u32, ValueType::I32)],
             Instructions::new(ctx.instrs),
         )
     }
 
-    fn compile_expr(&self, ctx: &mut CompileCtx, expr: &ast::Expr) {
-        match expr {
-            ast::Expr::IntLiteral(x) => {
+    fn compile_instr(&self, ctx: &mut CompileCtx, instr: &ir::Instr) {
+        match instr {
+            ir::Instr::IntConst(x) => {
                 ctx.instrs.push(Instruction::I32Const(*x));
             }
-            ast::Expr::Ident(name) => {
-                let local_idx = ctx.locals.get(name).cloned().unwrap();
-                ctx.instrs.push(Instruction::GetLocal(local_idx));
+            ir::Instr::VarRef(idx) => {
+                ctx.instrs.push(Instruction::GetLocal(*idx as u32));
             }
-            ast::Expr::BinaryOp(expr1, op, expr2) => {
-                self.compile_expr(ctx, expr1);
-                self.compile_expr(ctx, expr2);
-                match op {
-                    ast::BinaryOp::Add => ctx.instrs.push(Instruction::I32Add),
-                    ast::BinaryOp::Sub => ctx.instrs.push(Instruction::I32Sub),
-                    ast::BinaryOp::Mul => ctx.instrs.push(Instruction::I32Mul),
-                    ast::BinaryOp::Div => ctx.instrs.push(Instruction::I32DivS),
-                    ast::BinaryOp::Mod => ctx.instrs.push(Instruction::I32RemS),
-                    ast::BinaryOp::Lt => ctx.instrs.push(Instruction::I32LtS),
-                    ast::BinaryOp::Gt => ctx.instrs.push(Instruction::I32GtS),
-                    ast::BinaryOp::Le => ctx.instrs.push(Instruction::I32LeS),
-                    ast::BinaryOp::Ge => ctx.instrs.push(Instruction::I32GeS),
-                    ast::BinaryOp::Eq => ctx.instrs.push(Instruction::I32Eq),
-                    ast::BinaryOp::Ne => ctx.instrs.push(Instruction::I32Ne),
-                    ast::BinaryOp::And => ctx.instrs.push(Instruction::I32And),
-                    ast::BinaryOp::Or => ctx.instrs.push(Instruction::I32Or),
-                }
-            }
-            ast::Expr::PrefixOp(op, expr) => {
-                self.compile_expr(ctx, expr);
-                match op {
-                    ast::PrefixOp::Not => ctx.instrs.push(Instruction::I32Eqz),
-                    ast::PrefixOp::Minus => {
-                        ctx.instrs.push(Instruction::I32Const(0));
-                        ctx.instrs.push(Instruction::I32Sub);
-                    }
-                }
-            }
-            ast::Expr::Assign(ident, expr) => {
-                self.compile_expr(ctx, expr);
-                let local_idx = ctx.locals.get(ident).cloned().unwrap();
-                ctx.instrs.push(Instruction::SetLocal(local_idx));
+            ir::Instr::Add => ctx.instrs.push(Instruction::I32Add),
+            ir::Instr::Sub => ctx.instrs.push(Instruction::I32Sub),
+            ir::Instr::Mul => ctx.instrs.push(Instruction::I32Mul),
+            ir::Instr::Div => ctx.instrs.push(Instruction::I32DivS),
+            ir::Instr::Mod => ctx.instrs.push(Instruction::I32RemS),
+            ir::Instr::Lt => ctx.instrs.push(Instruction::I32LtS),
+            ir::Instr::Gt => ctx.instrs.push(Instruction::I32GtS),
+            ir::Instr::Le => ctx.instrs.push(Instruction::I32LeS),
+            ir::Instr::Ge => ctx.instrs.push(Instruction::I32GeS),
+            ir::Instr::Eq => ctx.instrs.push(Instruction::I32Eq),
+            ir::Instr::Ne => ctx.instrs.push(Instruction::I32Ne),
+            ir::Instr::And => ctx.instrs.push(Instruction::I32And),
+            ir::Instr::Or => ctx.instrs.push(Instruction::I32Or),
+            ir::Instr::Not => ctx.instrs.push(Instruction::I32Eqz),
+            ir::Instr::Minus => {
                 ctx.instrs.push(Instruction::I32Const(0));
+                ctx.instrs.push(Instruction::I32Sub);
             }
-            ast::Expr::Call(ident, exprs) => {
-                for expr in exprs {
-                    self.compile_expr(ctx, expr);
-                }
-
-                let func_ref = self.func_refs.get(ident).cloned().unwrap();
-                match func_ref {
-                    FuncRef::UserDefined { table_idx, .. } => {
-                        ctx.instrs.push(Instruction::I32Const(table_idx as i32));
-                        ctx.instrs
-                            .push(Instruction::CallIndirect(exprs.len() as u32, 0));
-                    }
-                    FuncRef::Builtin { func_idx, .. } => {
-                        ctx.instrs.push(Instruction::Call(func_idx));
-                    }
-                };
+            ir::Instr::Assign(idx) => {
+                ctx.instrs.push(Instruction::SetLocal(*idx as u32));
             }
-            ast::Expr::While(cond, body) => {
+            ir::Instr::Call { func, args_count } => {
+                ctx.instrs.push(Instruction::I32Const(*func as i32));
+                ctx.instrs
+                    .push(Instruction::CallIndirect(*args_count as u32, 0));
+            }
+            ir::Instr::Loop(_) => {
                 ctx.instrs.push(Instruction::Block(BlockType::NoResult));
                 ctx.instrs.push(Instruction::Loop(BlockType::NoResult));
-                self.compile_expr(ctx, cond);
+            }
+            ir::Instr::LoopThen(_) => {
                 ctx.instrs.push(Instruction::I32Eqz);
                 ctx.instrs.push(Instruction::BrIf(1));
-                self.compile_expr(ctx, body);
-                ctx.instrs.push(Instruction::Drop);
+            }
+            ir::Instr::LoopEnd(_) => {
                 ctx.instrs.push(Instruction::Br(0));
                 ctx.instrs.push(Instruction::End);
                 ctx.instrs.push(Instruction::End);
-                ctx.instrs.push(Instruction::I32Const(0));
             }
-            ast::Expr::If(cond, body, else_body) => {
-                self.compile_expr(ctx, cond);
+            ir::Instr::If(_) => {
                 ctx.instrs
                     .push(Instruction::If(BlockType::Value(ValueType::I32)));
-                self.compile_expr(ctx, body);
+            }
+            ir::Instr::Else(_) => {
                 ctx.instrs.push(Instruction::Else);
-                self.compile_expr(ctx, else_body);
+            }
+            ir::Instr::IfEnd(_) => {
                 ctx.instrs.push(Instruction::End);
             }
-            ast::Expr::Block(exprs) => match exprs.split_last() {
-                Some((expr, last)) => {
-                    for expr in last {
-                        self.compile_expr(ctx, expr);
-                        ctx.instrs.push(Instruction::Drop);
-                    }
-                    self.compile_expr(ctx, expr);
-                }
-                None => ctx.instrs.push(Instruction::I32Const(0)),
-            },
-            ast::Expr::Var(ident, expr1, expr2) => {
-                self.compile_expr(ctx, expr1);
-                let prev_locals = ctx.locals.clone();
-                let local_idx = ctx.add_local(ident.clone());
-                ctx.instrs.push(Instruction::SetLocal(local_idx));
-                self.compile_expr(ctx, expr2);
-                ctx.locals = prev_locals;
+            ir::Instr::Println => {
+                ctx.instrs.push(Instruction::Call(0));
+            }
+            ir::Instr::Return => {
+                ctx.instrs.push(Instruction::Return);
+            }
+            ir::Instr::Drop => {
+                ctx.instrs.push(Instruction::Drop);
             }
         }
     }
@@ -310,24 +236,11 @@ impl Compiler {
 #[derive(Debug, PartialEq, Clone)]
 
 struct CompileCtx {
-    locals: HashMap<String, u32>,
-    local_count: u32,
     instrs: Vec<Instruction>,
 }
 
 impl CompileCtx {
     fn new() -> Self {
-        CompileCtx {
-            locals: HashMap::new(),
-            local_count: 0,
-            instrs: Vec::new(),
-        }
-    }
-
-    fn add_local(&mut self, name: String) -> u32 {
-        let idx = self.local_count;
-        self.local_count += 1;
-        self.locals.insert(name, idx);
-        idx
+        CompileCtx { instrs: Vec::new() }
     }
 }

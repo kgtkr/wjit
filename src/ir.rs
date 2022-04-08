@@ -44,6 +44,7 @@ pub struct Func {
     pub instrs: Vec<Instr>,
     pub if_infos: Vec<IfInfo>,
     pub loop_infos: Vec<LoopInfo>,
+    pub name: String,
 }
 
 pub type LoopId = usize;
@@ -61,7 +62,6 @@ pub enum Instr {
     Loop(LoopId),
     LoopThen(LoopId),
     LoopEnd(LoopId),
-    VarDef,
     Return,
     Println,
     Add,
