@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 
 use crate::ast;
-use elements::{
-    BlockType, External, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection,
-    Instruction, Instructions, Local, Module, Section, TableSection, TableType, Type, TypeSection,
-    ValueType,
-};
 use parity_wasm::elements::{
-    self, CodeSection, ElementSection, ElementSegment, ExportEntry, ExportSection, InitExpr,
-    Internal,
+    self, BlockType, CodeSection, ElementSection, ElementSegment, ExportEntry, ExportSection,
+    External, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection, InitExpr,
+    Instruction, Instructions, Internal, Local, Module, Section, TableSection, TableType, Type,
+    TypeSection, ValueType,
 };
 
 #[derive(Debug, PartialEq, Clone)]
