@@ -8,10 +8,12 @@ use nom::{
 };
 
 use crate::ast::*;
-use crate::token::{Reserved, ReservedOp, Token};
+use crate::token;
 
-fn satisfy_opt<O>(f: impl Fn(&Token) -> Option<O>) -> impl Fn(&[Token]) -> IResult<&[Token], O> {
-    move |input1: &[Token]| {
+fn satisfy_opt<O>(
+    f: impl Fn(&token::Token) -> Option<O>,
+) -> impl Fn(&[token::Token]) -> IResult<&[token::Token], O> {
+    move |input1: &[token::Token]| {
         let (token, input2) =
             input1
                 .split_first()
@@ -29,34 +31,34 @@ fn satisfy_opt<O>(f: impl Fn(&Token) -> Option<O>) -> impl Fn(&[Token]) -> IResu
     }
 }
 
-fn int_literal(input: &[Token]) -> IResult<&[Token], i32> {
+fn int_literal(input: &[token::Token]) -> IResult<&[token::Token], i32> {
     satisfy_opt(|token| match token {
-        &Token::IntLiteral(value) => Some(value),
+        &token::Token::IntLiteral(value) => Some(value),
         _ => None,
     })(input)
 }
 
-fn ident(input: &[Token]) -> IResult<&[Token], String> {
+fn ident(input: &[token::Token]) -> IResult<&[token::Token], String> {
     satisfy_opt(|token| match token {
-        Token::Ident(value) => Some(value.clone()),
+        token::Token::Ident(value) => Some(value.clone()),
         _ => None,
     })(input)
 }
 
-fn paren_expr(input: &[Token]) -> IResult<&[Token], Expr> {
+fn paren_expr(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, _) = satisfy_opt(|token| match token {
-        Token::OpenParen => Some(()),
+        token::Token::OpenParen => Some(()),
         _ => None,
     })(input)?;
     let (input, expr) = expr(input)?;
     let (input, _) = satisfy_opt(|token| match token {
-        Token::CloseParen => Some(()),
+        token::Token::CloseParen => Some(()),
         _ => None,
     })(input)?;
     Ok((input, expr))
 }
 
-fn expr0(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr0(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     alt((
         map(int_literal, Expr::IntLiteral),
         paren_expr,
@@ -64,26 +66,26 @@ fn expr0(input: &[Token]) -> IResult<&[Token], Expr> {
     ))(input)
 }
 
-fn call_params(input: &[Token]) -> IResult<&[Token], Vec<Expr>> {
+fn call_params(input: &[token::Token]) -> IResult<&[token::Token], Vec<Expr>> {
     let (input, _) = satisfy_opt(|token| match token {
-        Token::OpenParen => Some(()),
+        token::Token::OpenParen => Some(()),
         _ => None,
     })(input)?;
     let (input, params) = separated_list0(
         satisfy_opt(|token| match token {
-            Token::Comma => Some(()),
+            token::Token::Comma => Some(()),
             _ => None,
         }),
         expr,
     )(input)?;
     let (input, _) = satisfy_opt(|token| match token {
-        Token::CloseParen => Some(()),
+        token::Token::CloseParen => Some(()),
         _ => None,
     })(input)?;
     Ok((input, params))
 }
 
-fn expr1(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr1(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let input1 = input;
     let (input, expr) = expr0(input)?;
 
@@ -103,9 +105,9 @@ fn expr1(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr2(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr2(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, prefix_ops) = many0(satisfy_opt(|token| match token {
-        Token::Operator(op) => match op.as_str() {
+        token::Token::Operator(op) => match op.as_str() {
             "-" => Some(PrefixOp::Minus),
             "!" => Some(PrefixOp::Not),
             _ => None,
@@ -122,11 +124,11 @@ fn expr2(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr3(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr3(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, expr) = expr2(input)?;
     let (input, binary_ops) = many0(tuple((
         satisfy_opt(|token| match token {
-            Token::Operator(op) => match op.as_str() {
+            token::Token::Operator(op) => match op.as_str() {
                 "*" => Some(BinaryOp::Mul),
                 "/" => Some(BinaryOp::Div),
                 "%" => Some(BinaryOp::Mod),
@@ -144,11 +146,11 @@ fn expr3(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr4(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr4(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, expr) = expr3(input)?;
     let (input, binary_ops) = many0(tuple((
         satisfy_opt(|token| match token {
-            Token::Operator(op) => match op.as_str() {
+            token::Token::Operator(op) => match op.as_str() {
                 "+" => Some(BinaryOp::Add),
                 "-" => Some(BinaryOp::Sub),
                 _ => None,
@@ -165,11 +167,11 @@ fn expr4(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr5(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr5(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, expr) = expr4(input)?;
     let (input, binary_ops) = many0(tuple((
         satisfy_opt(|token| match token {
-            Token::Operator(op) => match op.as_str() {
+            token::Token::Operator(op) => match op.as_str() {
                 "<" => Some(BinaryOp::Lt),
                 ">" => Some(BinaryOp::Gt),
                 "<=" => Some(BinaryOp::Le),
@@ -188,11 +190,11 @@ fn expr5(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr6(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr6(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, expr) = expr5(input)?;
     let (input, binary_ops) = many0(tuple((
         satisfy_opt(|token| match token {
-            Token::Operator(op) => match op.as_str() {
+            token::Token::Operator(op) => match op.as_str() {
                 "==" => Some(BinaryOp::Eq),
                 "!=" => Some(BinaryOp::Ne),
                 _ => None,
@@ -209,11 +211,11 @@ fn expr6(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr7(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr7(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, expr) = expr6(input)?;
     let (input, binary_ops) = many0(tuple((
         satisfy_opt(|token| match token {
-            Token::Operator(op) => match op.as_str() {
+            token::Token::Operator(op) => match op.as_str() {
                 "&&" => Some(BinaryOp::And),
                 _ => None,
             },
@@ -229,11 +231,11 @@ fn expr7(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr8(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr8(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, expr) = expr7(input)?;
     let (input, binary_ops) = many0(tuple((
         satisfy_opt(|token| match token {
-            Token::Operator(op) => match op.as_str() {
+            token::Token::Operator(op) => match op.as_str() {
                 "||" => Some(BinaryOp::Or),
                 _ => None,
             },
@@ -249,12 +251,12 @@ fn expr8(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn expr9(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr9(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let input1 = input;
     let (input, expr) = expr8(input)?;
     let (input, exprs) = many0(preceded(
         satisfy_opt(|token| match token {
-            Token::ReservedOp(ReservedOp::Assign) => Some(()),
+            token::Token::ReservedOp(token::ReservedOp::Assign) => Some(()),
             _ => None,
         }),
         expr8,
@@ -281,28 +283,28 @@ fn expr9(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn if_(input: &[Token]) -> IResult<&[Token], Expr> {
+fn if_(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, _) = satisfy_opt(|token| match token {
-        Token::Reserved(Reserved::If) => Some(()),
+        token::Token::Reserved(token::Reserved::If) => Some(()),
         _ => None,
     })(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::OpenParen => Some(()),
+        token::Token::OpenParen => Some(()),
         _ => None,
     })(input)?;
 
     let (input, expr1) = expr(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::CloseParen => Some(()),
+        token::Token::CloseParen => Some(()),
         _ => None,
     })(input)?;
 
     let (input, expr2) = expr(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::Reserved(Reserved::Else) => Some(()),
+        token::Token::Reserved(token::Reserved::Else) => Some(()),
         _ => None,
     })(input)?;
 
@@ -314,21 +316,21 @@ fn if_(input: &[Token]) -> IResult<&[Token], Expr> {
     ))
 }
 
-fn while_(input: &[Token]) -> IResult<&[Token], Expr> {
+fn while_(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, _) = satisfy_opt(|token| match token {
-        Token::Reserved(Reserved::While) => Some(()),
+        token::Token::Reserved(token::Reserved::While) => Some(()),
         _ => None,
     })(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::OpenParen => Some(()),
+        token::Token::OpenParen => Some(()),
         _ => None,
     })(input)?;
 
     let (input, expr1) = expr(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::CloseParen => Some(()),
+        token::Token::CloseParen => Some(()),
         _ => None,
     })(input)?;
 
@@ -337,45 +339,45 @@ fn while_(input: &[Token]) -> IResult<&[Token], Expr> {
     Ok((input, Expr::While(Box::new(expr1), Box::new(expr2))))
 }
 
-fn block(input: &[Token]) -> IResult<&[Token], Expr> {
+fn block(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, _) = satisfy_opt(|token| match token {
-        Token::OpenBrace => Some(()),
+        token::Token::OpenBrace => Some(()),
         _ => None,
     })(input)?;
 
     let (input, exprs) = many0(terminated(
         expr,
         satisfy_opt(|token| match token {
-            Token::SemiColon => Some(()),
+            token::Token::SemiColon => Some(()),
             _ => None,
         }),
     ))(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::CloseBrace => Some(()),
+        token::Token::CloseBrace => Some(()),
         _ => None,
     })(input)?;
 
     Ok((input, Expr::Block(exprs)))
 }
 
-fn var(input: &[Token]) -> IResult<&[Token], Expr> {
+fn var(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     let (input, _) = satisfy_opt(|token| match token {
-        Token::Reserved(Reserved::Var) => Some(()),
+        token::Token::Reserved(token::Reserved::Var) => Some(()),
         _ => None,
     })(input)?;
 
     let (input, ident) = ident(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::ReservedOp(ReservedOp::Assign) => Some(()),
+        token::Token::ReservedOp(token::ReservedOp::Assign) => Some(()),
         _ => None,
     })(input)?;
 
     let (input, expr1) = expr(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::Reserved(Reserved::In) => Some(()),
+        token::Token::Reserved(token::Reserved::In) => Some(()),
         _ => None,
     })(input)?;
 
@@ -384,33 +386,33 @@ fn var(input: &[Token]) -> IResult<&[Token], Expr> {
     Ok((input, Expr::Var(ident, Box::new(expr1), Box::new(expr2))))
 }
 
-fn expr(input: &[Token]) -> IResult<&[Token], Expr> {
+fn expr(input: &[token::Token]) -> IResult<&[token::Token], Expr> {
     alt((expr9, if_, while_, block, var))(input)
 }
 
-fn func(input: &[Token]) -> IResult<&[Token], Func> {
+fn func(input: &[token::Token]) -> IResult<&[token::Token], Func> {
     let (input, _) = satisfy_opt(|token| match token {
-        Token::Reserved(Reserved::Func) => Some(()),
+        token::Token::Reserved(token::Reserved::Func) => Some(()),
         _ => None,
     })(input)?;
 
     let (input, func_ident) = ident(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::OpenParen => Some(()),
+        token::Token::OpenParen => Some(()),
         _ => None,
     })(input)?;
 
     let (input, params) = separated_list0(
         satisfy_opt(|token| match token {
-            Token::Comma => Some(()),
+            token::Token::Comma => Some(()),
             _ => None,
         }),
         ident,
     )(input)?;
 
     let (input, _) = satisfy_opt(|token| match token {
-        Token::CloseParen => Some(()),
+        token::Token::CloseParen => Some(()),
         _ => None,
     })(input)?;
 
@@ -426,12 +428,12 @@ fn func(input: &[Token]) -> IResult<&[Token], Func> {
     ))
 }
 
-fn module(input: &[Token]) -> IResult<&[Token], Module> {
+fn module(input: &[token::Token]) -> IResult<&[token::Token], Module> {
     let (input, funcs) = many0(func)(input)?;
 
     Ok((input, Module { funcs }))
 }
 
-pub fn parse(input: &[Token]) -> IResult<&[Token], Module> {
+pub fn parse(input: &[token::Token]) -> IResult<&[token::Token], Module> {
     terminated(module, eof)(input)
 }
