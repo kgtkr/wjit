@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::program::{BinaryOp, Expr, PrefixOp, Program};
+use crate::ast::{BinaryOp, Expr, PrefixOp, Program};
 use elements::{
     BlockType, External, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection,
     Instruction, Instructions, Local, Module, Section, TableSection, TableType, Type, TypeSection,
