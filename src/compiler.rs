@@ -22,7 +22,7 @@ pub struct Compiler {
 #[derive(Debug, PartialEq, Clone)]
 
 pub enum FuncRef {
-    UserDefined { program_idx: usize, table_idx: u32 },
+    UserDefined { module_idx: usize, table_idx: u32 },
     Builtin { kind: BuiltinFunc, func_idx: u32 },
 }
 
@@ -48,7 +48,7 @@ impl Compiler {
             match func_refs.insert(
                 func.name.clone(),
                 FuncRef::UserDefined {
-                    program_idx: i,
+                    module_idx: i,
                     table_idx: i as u32,
                 },
             ) {
