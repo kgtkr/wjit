@@ -1,9 +1,9 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Module {
     pub funcs: Vec<Func>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct IfInfo {
     pub if_: usize,
     pub else_: usize,
@@ -20,7 +20,7 @@ impl IfInfo {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct LoopInfo {
     pub loop_: usize,
     pub loop_then: usize,
@@ -37,7 +37,7 @@ impl LoopInfo {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Func {
     pub args_count: usize,
     pub locals_count: usize,
@@ -50,7 +50,7 @@ pub struct Func {
 pub type LoopId = usize;
 pub type IfId = usize;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum Instr {
     IntConst(i32),
     VarRef(usize),

@@ -1,16 +1,16 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Module {
     pub funcs: Vec<Func>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Func {
     pub name: String,
     pub args: Vec<String>,
     pub body: Expr,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum Expr {
     IntLiteral(i32),
     Ident(String),
@@ -24,7 +24,7 @@ pub enum Expr {
     Var(String, Box<Expr>, Box<Expr>),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -41,7 +41,7 @@ pub enum BinaryOp {
     Or,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum PrefixOp {
     Not,
     Minus,

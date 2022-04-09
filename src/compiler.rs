@@ -1,12 +1,13 @@
 use crate::ir;
+use crate::wasm_generator;
 use parity_wasm::elements::{
-    BlockType, CodeSection, ElementSection, ElementSegment, ExportEntry, ExportSection, External,
-    Func, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection, InitExpr,
-    Instruction, Instructions, Internal, Local, Module, Section, TableSection, TableType, Type,
-    TypeSection, ValueType,
+    CodeSection, ElementSection, ElementSegment, ExportEntry, ExportSection, External, Func,
+    FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection, InitExpr, Instruction,
+    Instructions, Internal, Local, Module, Section, TableSection, TableType, Type, TypeSection,
+    ValueType,
 };
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 
 pub struct Compiler<'a> {
     module: &'a ir::Module,
@@ -143,98 +144,26 @@ impl<'a> Compiler<'a> {
     }
 
     pub fn compile_func(&self, idx: usize) -> FuncBody {
-        let mut ctx = CompileCtx::new();
-
         let func = &self.module.funcs[idx];
-        for instr in &func.instrs {
-            self.compile_instr(&mut ctx, instr);
-        }
-        ctx.instrs.push(Instruction::End);
+
+        let mut generator = wasm_generator::InstrsGenerator::new();
+
+        generator.types = (0..5).map(|x| (x, x as u32)).collect();
+        generator.func_refs = (0..self.module.funcs.len())
+            .map(|x| (x, wasm_generator::FuncRef::Indirect(x as u32)))
+            .collect();
+        generator.builtin_func_refs = vec![(
+            wasm_generator::BuiltinFunc::Println,
+            wasm_generator::FuncRef::Direct(0),
+        )]
+        .into_iter()
+        .collect();
+
+        let instrs = generator.gen_instrs(&func.instrs);
 
         FuncBody::new(
             vec![Local::new(func.locals_count as u32, ValueType::I32)],
-            Instructions::new(ctx.instrs),
+            Instructions::new(instrs),
         )
-    }
-
-    fn compile_instr(&self, ctx: &mut CompileCtx, instr: &ir::Instr) {
-        match instr {
-            ir::Instr::IntConst(x) => {
-                ctx.instrs.push(Instruction::I32Const(*x));
-            }
-            ir::Instr::VarRef(idx) => {
-                ctx.instrs.push(Instruction::GetLocal(*idx as u32));
-            }
-            ir::Instr::Add => ctx.instrs.push(Instruction::I32Add),
-            ir::Instr::Sub => ctx.instrs.push(Instruction::I32Sub),
-            ir::Instr::Mul => ctx.instrs.push(Instruction::I32Mul),
-            ir::Instr::Div => ctx.instrs.push(Instruction::I32DivS),
-            ir::Instr::Mod => ctx.instrs.push(Instruction::I32RemS),
-            ir::Instr::Lt => ctx.instrs.push(Instruction::I32LtS),
-            ir::Instr::Gt => ctx.instrs.push(Instruction::I32GtS),
-            ir::Instr::Le => ctx.instrs.push(Instruction::I32LeS),
-            ir::Instr::Ge => ctx.instrs.push(Instruction::I32GeS),
-            ir::Instr::Eq => ctx.instrs.push(Instruction::I32Eq),
-            ir::Instr::Ne => ctx.instrs.push(Instruction::I32Ne),
-            ir::Instr::And => ctx.instrs.push(Instruction::I32And),
-            ir::Instr::Or => ctx.instrs.push(Instruction::I32Or),
-            ir::Instr::Not => ctx.instrs.push(Instruction::I32Eqz),
-            ir::Instr::Minus => {
-                ctx.instrs.push(Instruction::I32Const(0));
-                ctx.instrs.push(Instruction::I32Sub);
-            }
-            ir::Instr::Assign(idx) => {
-                ctx.instrs.push(Instruction::SetLocal(*idx as u32));
-            }
-            ir::Instr::Call { func, args_count } => {
-                ctx.instrs.push(Instruction::I32Const(*func as i32));
-                ctx.instrs
-                    .push(Instruction::CallIndirect(*args_count as u32, 0));
-            }
-            ir::Instr::Loop(_) => {
-                ctx.instrs.push(Instruction::Block(BlockType::NoResult));
-                ctx.instrs.push(Instruction::Loop(BlockType::NoResult));
-            }
-            ir::Instr::LoopThen(_) => {
-                ctx.instrs.push(Instruction::I32Eqz);
-                ctx.instrs.push(Instruction::BrIf(1));
-            }
-            ir::Instr::LoopEnd(_) => {
-                ctx.instrs.push(Instruction::Br(0));
-                ctx.instrs.push(Instruction::End);
-                ctx.instrs.push(Instruction::End);
-            }
-            ir::Instr::If(_) => {
-                ctx.instrs
-                    .push(Instruction::If(BlockType::Value(ValueType::I32)));
-            }
-            ir::Instr::Else(_) => {
-                ctx.instrs.push(Instruction::Else);
-            }
-            ir::Instr::IfEnd(_) => {
-                ctx.instrs.push(Instruction::End);
-            }
-            ir::Instr::Println => {
-                ctx.instrs.push(Instruction::Call(0));
-            }
-            ir::Instr::Return => {
-                ctx.instrs.push(Instruction::Return);
-            }
-            ir::Instr::Drop => {
-                ctx.instrs.push(Instruction::Drop);
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-
-struct CompileCtx {
-    instrs: Vec<Instruction>,
-}
-
-impl CompileCtx {
-    fn new() -> Self {
-        CompileCtx { instrs: Vec::new() }
     }
 }

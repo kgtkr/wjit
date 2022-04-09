@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum Token {
     Operator(String),
     Ident(String),
@@ -14,7 +14,7 @@ pub enum Token {
     SemiColon,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum Reserved {
     If,
     Else,
@@ -24,7 +24,7 @@ pub enum Reserved {
     In,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 
 pub enum ReservedOp {
     Assign,

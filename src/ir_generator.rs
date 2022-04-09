@@ -3,21 +3,21 @@ use std::collections::HashMap;
 use crate::ast;
 use crate::ir::*;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 
 struct IrGenerator<'a> {
     module: &'a ast::Module,
     func_refs: HashMap<String, FuncRef>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 
 enum FuncRef {
     UserDefined { idx: usize },
     Builtin { kind: BuiltinFunc },
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 enum BuiltinFunc {
     Println,
 }
@@ -190,7 +190,7 @@ impl<'a> IrGenerator<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 
 struct GenFuncState {
     locals: HashMap<String, usize>,
