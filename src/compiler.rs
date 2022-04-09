@@ -13,12 +13,6 @@ pub struct Compiler<'a> {
     // typeはめんどくさいのでパラメータが0〜5のものをそれぞれindex 0〜5で
 }
 
-#[derive(Debug, PartialEq, Clone)]
-
-pub enum BuiltinFunc {
-    Println,
-}
-
 impl<'a> Compiler<'a> {
     pub fn new(module: &'a ir::Module) -> Self {
         Compiler { module }
