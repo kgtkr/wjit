@@ -5,4 +5,4 @@ pub mod ir_generator;
 pub mod parser;
 pub mod token;
 pub mod tokenizer;
-pub mod wasm_generator;
+pub mod vm;pub mod wasm_generator;
