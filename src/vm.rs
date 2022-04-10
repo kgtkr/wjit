@@ -1,5 +1,9 @@
 use crate::ir::*;
 
+pub trait Builtin {
+    fn println(&mut self, x: i32);
+}
+
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct PC {
     pub func: usize,
@@ -13,20 +17,22 @@ pub struct StackFrame {
 }
 
 #[derive(Debug, PartialEq, Clone, Eq)]
-pub struct VM<'a> {
+pub struct VM<'a, B: Builtin> {
     pc: PC,
     stack: Vec<i32>,
     call_stack: Vec<StackFrame>,
     module: &'a Module,
+    builtin: B,
 }
 
-impl<'a> VM<'a> {
-    pub fn new(module: &'a Module) -> Self {
+impl<'a, B: Builtin> VM<'a, B> {
+    pub fn new(module: &'a Module, builtin: B) -> Self {
         VM {
             pc: PC { func: 0, instr: 0 },
             stack: Vec::new(),
             call_stack: Vec::new(),
             module,
+            builtin,
         }
     }
 
@@ -96,7 +102,7 @@ impl<'a> VM<'a> {
             }
             Instr::Println => {
                 let x = self.stack.pop().unwrap();
-                println!("{}", x);
+                self.builtin.println(x);
                 self.pc.instr += 1;
             }
             Instr::Add => {
@@ -216,6 +222,16 @@ impl<'a> VM<'a> {
             Some(self.stack.pop().unwrap())
         } else {
             None
+        }
+    }
+
+    pub fn call(&mut self, func: usize, args: &[i32]) -> i32 {
+        self.call_prepare(func, args);
+        loop {
+            self.step();
+            if let Some(ret_val) = self.call_result() {
+                return ret_val;
+            }
         }
     }
 }
