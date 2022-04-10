@@ -85,7 +85,7 @@ impl<'a> VM<'a> {
                 }
             }
             &Instr::LoopEnd(loop_id) => {
-                self.pc.instr = func.loop_infos[loop_id].loop_ + 1;
+                self.pc.instr = func.loop_infos[loop_id].loop_;
             }
             Instr::Return => {
                 let ret_val = self.stack.pop().unwrap();
