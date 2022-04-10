@@ -195,24 +195,27 @@ impl<'a> VM<'a> {
         self.pc.instr += 1;
     }
 
-    pub fn call(&mut self, func: usize, args: &[i32]) -> i32 {
-        let dummy_func = self.module.funcs.len();
+    pub fn dummy_func(&self) -> usize {
+        self.module.funcs.len()
+    }
+
+    pub fn call_prepare(&mut self, func: usize, args: &[i32]) {
         self.call_stack.push(StackFrame {
             pc: PC {
-                func: dummy_func,
+                func: self.dummy_func(),
                 instr: 0,
             },
             base: 0,
         });
         self.pc = PC { func, instr: 0 };
         self.stack.extend(args.iter().cloned());
+    }
 
-        loop {
-            self.step();
-            if self.pc.func == dummy_func {
-                break;
-            }
+    pub fn call_result(&mut self) -> Option<i32> {
+        if self.pc.func == self.dummy_func() {
+            Some(self.stack.pop().unwrap())
+        } else {
+            None
         }
-        self.stack.pop().unwrap()
     }
 }
