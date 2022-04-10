@@ -1,10 +1,10 @@
 pub mod ast;
 pub mod compiler;
+pub mod interpreter;
 pub mod ir;
 pub mod ir_generator;
 pub mod jit_vm;
 pub mod parser;
 pub mod token;
 pub mod tokenizer;
-pub mod vm;
 pub mod wasm_generator;

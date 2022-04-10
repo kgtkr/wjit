@@ -10,7 +10,7 @@ extern "C" {
 
 pub struct WasmBuiltin;
 
-impl vm::Builtin for WasmBuiltin {
+impl interpreter::Builtin for WasmBuiltin {
     fn println(&mut self, x: i32) {
         unsafe {
             println(x);
@@ -20,7 +20,7 @@ impl vm::Builtin for WasmBuiltin {
 
 pub struct RustBuiltin;
 
-impl vm::Builtin for RustBuiltin {
+impl interpreter::Builtin for RustBuiltin {
     fn println(&mut self, x: i32) {
         println!("{}", x);
     }
@@ -91,18 +91,18 @@ pub fn compile_func(compiler: *mut compiler::Compiler, idx: i32, len: *mut i32) 
 }
 
 #[no_mangle]
-pub fn make_vm(module: &ir::Module) -> *mut vm::VM<WasmBuiltin> {
-    let vm = vm::VM::new(module, WasmBuiltin);
-    let vm = Box::new(vm);
-    let vm = Box::into_raw(vm);
+pub fn make_interpreter(module: &ir::Module) -> *mut interpreter::Interpreter<WasmBuiltin> {
+    let interpreter = interpreter::Interpreter::new(module, WasmBuiltin);
+    let interpreter = Box::new(interpreter);
+    let interpreter = Box::into_raw(interpreter);
 
-    std::mem::forget(vm);
-    vm
+    std::mem::forget(interpreter);
+    interpreter
 }
 
 #[no_mangle]
-pub unsafe fn vm_call_func(
-    vm: &mut vm::VM<WasmBuiltin>,
+pub unsafe fn interpreter_call_func(
+    interpreter: &mut interpreter::Interpreter<WasmBuiltin>,
     func: usize,
     args_count: usize,
     args: *const i32,
@@ -112,5 +112,5 @@ pub unsafe fn vm_call_func(
     } else {
         std::slice::from_raw_parts(args, args_count)
     };
-    vm.call(func, args)
+    interpreter.call(func, args)
 }

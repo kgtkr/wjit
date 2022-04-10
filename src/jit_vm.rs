@@ -1,1 +1,1 @@
-use crate::vm::VM;
+use crate::interpreter::Interpreter;

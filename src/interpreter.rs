@@ -17,7 +17,7 @@ pub struct StackFrame {
 }
 
 #[derive(Debug, PartialEq, Clone, Eq)]
-pub struct VM<'a, B: Builtin> {
+pub struct Interpreter<'a, B: Builtin> {
     pc: PC,
     stack: Vec<i32>,
     call_stack: Vec<StackFrame>,
@@ -25,9 +25,9 @@ pub struct VM<'a, B: Builtin> {
     builtin: B,
 }
 
-impl<'a, B: Builtin> VM<'a, B> {
+impl<'a, B: Builtin> Interpreter<'a, B> {
     pub fn new(module: &'a Module, builtin: B) -> Self {
-        VM {
+        Interpreter {
             pc: PC { func: 0, instr: 0 },
             stack: Vec::new(),
             call_stack: Vec::new(),

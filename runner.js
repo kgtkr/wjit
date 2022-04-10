@@ -38,19 +38,19 @@ class Runner {
     return this.wasmInstance.exports.make_ir_module(this.stringToPtr(code));
   }
 
-  makeVM(IrModule) {
-    return this.wasmInstance.exports.make_vm(IrModule);
+  makeInterpreter(IrModule) {
+    return this.wasmInstance.exports.make_interpreter(IrModule);
   }
 
-  vmCall(vm, funcIdx, args) {
+  interpreterCall(interpreter, funcIdx, args) {
     const argsPtr =
       args.length !== 0 ? this.wasmInstance.exports.alloc(args.length * 4) : 0;
     const memoryView = new DataView(this.wasmInstance.exports.memory.buffer);
     for (let i = 0; i < args.length; i++) {
       memoryView.setInt32(argsPtr + i * 4, args[i], true);
     }
-    return this.wasmInstance.exports.vm_call_func(
-      vm,
+    return this.wasmInstance.exports.interpreter_call_func(
+      interpreter,
       funcIdx,
       args.length,
       argsPtr
@@ -121,5 +121,5 @@ const skeletonModule = runner.makeSkeletonModule(compiler);
 const skeletonInstance = runner.makeSkeltonInstance(compiler, skeletonModule);
 
 skeletonInstance.exports.main();
-const vm = runner.makeVM(irModule);
-runner.vmCall(vm, 0, []);
+const interpreter = runner.makeInterpreter(irModule);
+runner.interpreterCall(interpreter, 0, []);
