@@ -8,7 +8,13 @@ class Runner {
     const wasmPath = "target/wasm32-unknown-unknown/debug/wjit.wasm";
     const wasmBin = fs.readFileSync(wasmPath);
     const wasmModule = new WebAssembly.Module(wasmBin);
-    this.wasmInstance = new WebAssembly.Instance(wasmModule);
+    this.wasmInstance = new WebAssembly.Instance(wasmModule, {
+      env: {
+        println: (x) => {
+          console.log(x);
+        },
+      },
+    });
   }
 
   stringToPtr(str) {
@@ -30,6 +36,25 @@ class Runner {
 
   makeIrModule(code) {
     return this.wasmInstance.exports.make_ir_module(this.stringToPtr(code));
+  }
+
+  makeVM(IrModule) {
+    return this.wasmInstance.exports.make_vm(IrModule);
+  }
+
+  vmCall(vm, funcIdx, args) {
+    const argsPtr =
+      args.length !== 0 ? this.wasmInstance.exports.alloc(args.length * 4) : 0;
+    const memoryView = new DataView(this.wasmInstance.exports.memory.buffer);
+    for (let i = 0; i < args.length; i++) {
+      memoryView.setInt32(argsPtr + i * 4, args[i], true);
+    }
+    return this.wasmInstance.exports.vm_call_func(
+      vm,
+      funcIdx,
+      args.length,
+      argsPtr
+    );
   }
 
   makeCompiler(irModule) {
@@ -96,3 +121,5 @@ const skeletonModule = runner.makeSkeletonModule(compiler);
 const skeletonInstance = runner.makeSkeltonInstance(compiler, skeletonModule);
 
 skeletonInstance.exports.main();
+const vm = runner.makeVM(irModule);
+runner.vmCall(vm, 0, []);

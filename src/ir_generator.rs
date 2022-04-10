@@ -146,8 +146,8 @@ impl<'a> IrGenerator<'a> {
                 loop_info.loop_then = state.instrs.len();
                 state.instrs.push(Instr::LoopThen(loop_id));
                 self.gen_expr(state, body);
-                loop_info.loop_end = state.instrs.len();
                 state.instrs.push(Instr::Drop);
+                loop_info.loop_end = state.instrs.len();
                 state.instrs.push(Instr::LoopEnd(loop_id));
                 state.loop_infos[loop_id] = loop_info;
 

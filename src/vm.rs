@@ -57,9 +57,15 @@ impl<'a, B: Builtin> VM<'a, B> {
             }
             Instr::Call { func, args_count } => {
                 self.call_stack.push(StackFrame {
-                    pc: self.pc.clone(),
-                    base: self.stack.len() - *args_count - 1,
+                    pc: {
+                        let mut pc = self.pc.clone();
+                        pc.instr += 1;
+                        pc
+                    },
+                    base: self.stack.len() - *args_count,
                 });
+                self.stack
+                    .extend((0..self.module.funcs[*func].locals_count).map(|_| 0));
                 self.pc = PC {
                     func: *func,
                     instr: 0,
@@ -103,6 +109,7 @@ impl<'a, B: Builtin> VM<'a, B> {
             Instr::Println => {
                 let x = self.stack.pop().unwrap();
                 self.builtin.println(x);
+                self.stack.push(0);
                 self.pc.instr += 1;
             }
             Instr::Add => {
@@ -121,6 +128,7 @@ impl<'a, B: Builtin> VM<'a, B> {
                 let y = self.stack.pop().unwrap();
                 let x = self.stack.pop().unwrap();
                 self.stack.push(x * y);
+                self.pc.instr += 1;
             }
             Instr::Div => {
                 let y = self.stack.pop().unwrap();
@@ -197,8 +205,6 @@ impl<'a, B: Builtin> VM<'a, B> {
                 self.pc.instr += 1;
             }
         }
-
-        self.pc.instr += 1;
     }
 
     pub fn dummy_func(&self) -> usize {
@@ -215,6 +221,8 @@ impl<'a, B: Builtin> VM<'a, B> {
         });
         self.pc = PC { func, instr: 0 };
         self.stack.extend(args.iter().cloned());
+        self.stack
+            .extend((0..self.module.funcs[func].locals_count).map(|_| 0));
     }
 
     pub fn call_result(&mut self) -> Option<i32> {

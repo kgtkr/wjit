@@ -1,8 +1,30 @@
-fn main() {}
-
 use std::ffi::CString;
 use std::os::raw::c_char;
 use wjit::*;
+
+fn main() {}
+
+extern "C" {
+    fn println(x: i32);
+}
+
+pub struct WasmBuiltin;
+
+impl vm::Builtin for WasmBuiltin {
+    fn println(&mut self, x: i32) {
+        unsafe {
+            println(x);
+        }
+    }
+}
+
+pub struct RustBuiltin;
+
+impl vm::Builtin for RustBuiltin {
+    fn println(&mut self, x: i32) {
+        println!("{}", x);
+    }
+}
 
 #[no_mangle]
 pub fn alloc(size: i32) -> *mut u8 {
@@ -66,4 +88,29 @@ pub fn compile_func(compiler: *mut compiler::Compiler, idx: i32, len: *mut i32) 
 
     std::mem::forget(buf);
     result
+}
+
+#[no_mangle]
+pub fn make_vm(module: &ir::Module) -> *mut vm::VM<WasmBuiltin> {
+    let vm = vm::VM::new(module, WasmBuiltin);
+    let vm = Box::new(vm);
+    let vm = Box::into_raw(vm);
+
+    std::mem::forget(vm);
+    vm
+}
+
+#[no_mangle]
+pub unsafe fn vm_call_func(
+    vm: &mut vm::VM<WasmBuiltin>,
+    func: usize,
+    args_count: usize,
+    args: *const i32,
+) -> i32 {
+    let args = if args == std::ptr::null() {
+        &[]
+    } else {
+        std::slice::from_raw_parts(args, args_count)
+    };
+    vm.call(func, args)
 }
