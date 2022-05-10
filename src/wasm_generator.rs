@@ -52,33 +52,42 @@ impl InstrsGenerator {
 
     fn gen_instr(&self, state: &mut InstrsGeneratorState, instr: &ir::Instr) {
         match instr {
-            ir::Instr::IntConst(x) => {
-                state.instrs.push(Instruction::I32Const(*x));
-            }
-            ir::Instr::VarRef(idx) => {
-                state.instrs.push(Instruction::GetLocal(*idx as u32));
-            }
-            ir::Instr::Add => state.instrs.push(Instruction::I32Add),
-            ir::Instr::Sub => state.instrs.push(Instruction::I32Sub),
-            ir::Instr::Mul => state.instrs.push(Instruction::I32Mul),
-            ir::Instr::Div => state.instrs.push(Instruction::I32DivS),
-            ir::Instr::Mod => state.instrs.push(Instruction::I32RemS),
-            ir::Instr::Lt => state.instrs.push(Instruction::I32LtS),
-            ir::Instr::Gt => state.instrs.push(Instruction::I32GtS),
-            ir::Instr::Le => state.instrs.push(Instruction::I32LeS),
-            ir::Instr::Ge => state.instrs.push(Instruction::I32GeS),
-            ir::Instr::Eq => state.instrs.push(Instruction::I32Eq),
-            ir::Instr::Ne => state.instrs.push(Instruction::I32Ne),
-            ir::Instr::And => state.instrs.push(Instruction::I32And),
-            ir::Instr::Or => state.instrs.push(Instruction::I32Or),
-            ir::Instr::Not => state.instrs.push(Instruction::I32Eqz),
-            ir::Instr::Minus => {
-                state.instrs.push(Instruction::I32Const(0));
-                state.instrs.push(Instruction::I32Sub);
-            }
-            ir::Instr::Assign(idx) => {
-                state.instrs.push(Instruction::SetLocal(*idx as u32));
-            }
+            ir::Instr::NonControl(non_control) => match non_control {
+                ir::NonControlInstr::IntConst(x) => {
+                    state.instrs.push(Instruction::I32Const(*x));
+                }
+                ir::NonControlInstr::VarRef(idx) => {
+                    state.instrs.push(Instruction::GetLocal(*idx as u32));
+                }
+                ir::NonControlInstr::Add => state.instrs.push(Instruction::I32Add),
+                ir::NonControlInstr::Sub => state.instrs.push(Instruction::I32Sub),
+                ir::NonControlInstr::Mul => state.instrs.push(Instruction::I32Mul),
+                ir::NonControlInstr::Div => state.instrs.push(Instruction::I32DivS),
+                ir::NonControlInstr::Mod => state.instrs.push(Instruction::I32RemS),
+                ir::NonControlInstr::Lt => state.instrs.push(Instruction::I32LtS),
+                ir::NonControlInstr::Gt => state.instrs.push(Instruction::I32GtS),
+                ir::NonControlInstr::Le => state.instrs.push(Instruction::I32LeS),
+                ir::NonControlInstr::Ge => state.instrs.push(Instruction::I32GeS),
+                ir::NonControlInstr::Eq => state.instrs.push(Instruction::I32Eq),
+                ir::NonControlInstr::Ne => state.instrs.push(Instruction::I32Ne),
+                ir::NonControlInstr::And => state.instrs.push(Instruction::I32And),
+                ir::NonControlInstr::Or => state.instrs.push(Instruction::I32Or),
+                ir::NonControlInstr::Not => state.instrs.push(Instruction::I32Eqz),
+                ir::NonControlInstr::Minus => {
+                    state.instrs.push(Instruction::I32Const(0));
+                    state.instrs.push(Instruction::I32Sub);
+                }
+                ir::NonControlInstr::Assign(idx) => {
+                    state.instrs.push(Instruction::SetLocal(*idx as u32));
+                }
+                ir::NonControlInstr::Println => {
+                    let func_ref = &self.builtin_func_refs[&BuiltinFunc::Println];
+                    self.gen_func_refs(state, func_ref, 1);
+                }
+                ir::NonControlInstr::Drop => {
+                    state.instrs.push(Instruction::Drop);
+                }
+            },
             ir::Instr::Call { func, args_count } => {
                 let func_ref = &self.func_refs[func];
                 self.gen_func_refs(state, func_ref, *args_count);
@@ -107,15 +116,8 @@ impl InstrsGenerator {
             ir::Instr::IfEnd(_) => {
                 state.instrs.push(Instruction::End);
             }
-            ir::Instr::Println => {
-                let func_ref = &self.builtin_func_refs[&BuiltinFunc::Println];
-                self.gen_func_refs(state, func_ref, 1);
-            }
             ir::Instr::Return => {
                 state.instrs.push(Instruction::Return);
-            }
-            ir::Instr::Drop => {
-                state.instrs.push(Instruction::Drop);
             }
         }
     }

@@ -52,9 +52,6 @@ pub type IfId = usize;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum Instr {
-    IntConst(i32),
-    VarRef(usize),
-    Assign(usize),
     Call { func: usize, args_count: usize },
     If(IfId),
     Else(IfId),
@@ -63,6 +60,14 @@ pub enum Instr {
     LoopThen(LoopId),
     LoopEnd(LoopId),
     Return,
+    NonControl(NonControlInstr),
+}
+
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
+pub enum NonControlInstr {
+    IntConst(i32),
+    VarRef(usize),
+    Assign(usize),
     Println,
     Add,
     Sub,

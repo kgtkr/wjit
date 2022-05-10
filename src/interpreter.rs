@@ -68,17 +68,100 @@ impl<'a, B: Builtin> Interpreter<'a, B> {
         let stack_frame = self.call_stack.last().unwrap();
 
         match instr {
-            Instr::IntConst(x) => {
-                self.stack.push(*x);
-                self.pc.instr += 1;
-            }
-            Instr::VarRef(idx) => {
-                self.stack.push(self.stack[stack_frame.base + *idx]);
-                self.pc.instr += 1;
-            }
-            Instr::Assign(idx) => {
-                let x = self.stack.pop().unwrap();
-                self.stack[stack_frame.base + *idx] = x;
+            Instr::NonControl(non_control) => {
+                match non_control {
+                    NonControlInstr::IntConst(x) => {
+                        self.stack.push(*x);
+                    }
+                    NonControlInstr::VarRef(idx) => {
+                        self.stack.push(self.stack[stack_frame.base + *idx]);
+                    }
+                    NonControlInstr::Assign(idx) => {
+                        let x = self.stack.pop().unwrap();
+                        self.stack[stack_frame.base + *idx] = x;
+                    }
+                    NonControlInstr::Println => {
+                        let x = self.stack.pop().unwrap();
+                        self.builtin.println(x);
+                        self.stack.push(0);
+                    }
+                    NonControlInstr::Add => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(x + y);
+                    }
+                    NonControlInstr::Sub => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(x - y);
+                    }
+                    NonControlInstr::Mul => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(x * y);
+                    }
+                    NonControlInstr::Div => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(x / y);
+                    }
+                    NonControlInstr::Mod => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(x % y);
+                    }
+                    NonControlInstr::Lt => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x < y { 1 } else { 0 });
+                    }
+                    NonControlInstr::Gt => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x > y { 1 } else { 0 });
+                    }
+                    NonControlInstr::Le => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x <= y { 1 } else { 0 });
+                    }
+                    NonControlInstr::Ge => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x >= y { 1 } else { 0 });
+                    }
+                    NonControlInstr::Eq => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x == y { 1 } else { 0 });
+                    }
+                    NonControlInstr::Ne => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x != y { 1 } else { 0 });
+                    }
+                    NonControlInstr::And => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x != 0 && y != 0 { 1 } else { 0 });
+                    }
+                    NonControlInstr::Or => {
+                        let y = self.stack.pop().unwrap();
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x != 0 || y != 0 { 1 } else { 0 });
+                    }
+                    NonControlInstr::Not => {
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(if x == 0 { 1 } else { 0 });
+                    }
+                    NonControlInstr::Minus => {
+                        let x = self.stack.pop().unwrap();
+                        self.stack.push(-x);
+                    }
+                    NonControlInstr::Drop => {
+                        self.stack.pop();
+                    }
+                }
                 self.pc.instr += 1;
             }
             Instr::Call { func, args_count } => {
@@ -131,104 +214,6 @@ impl<'a, B: Builtin> Interpreter<'a, B> {
                 self.stack.truncate(stack_frame.base);
                 self.call_stack.pop();
                 self.stack.push(ret_val);
-            }
-            Instr::Println => {
-                let x = self.stack.pop().unwrap();
-                self.builtin.println(x);
-                self.stack.push(0);
-                self.pc.instr += 1;
-            }
-            Instr::Add => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(x + y);
-                self.pc.instr += 1;
-            }
-            Instr::Sub => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(x - y);
-                self.pc.instr += 1;
-            }
-            Instr::Mul => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(x * y);
-                self.pc.instr += 1;
-            }
-            Instr::Div => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(x / y);
-                self.pc.instr += 1;
-            }
-            Instr::Mod => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(x % y);
-                self.pc.instr += 1;
-            }
-            Instr::Lt => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x < y { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Gt => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x > y { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Le => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x <= y { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Ge => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x >= y { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Eq => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x == y { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Ne => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x != y { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::And => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x != 0 && y != 0 { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Or => {
-                let y = self.stack.pop().unwrap();
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x != 0 || y != 0 { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Not => {
-                let x = self.stack.pop().unwrap();
-                self.stack.push(if x == 0 { 1 } else { 0 });
-                self.pc.instr += 1;
-            }
-            Instr::Minus => {
-                let x = self.stack.pop().unwrap();
-                self.stack.push(-x);
-                self.pc.instr += 1;
-            }
-            Instr::Drop => {
-                self.stack.pop();
-                self.pc.instr += 1;
             }
         }
     }

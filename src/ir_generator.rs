@@ -76,45 +76,67 @@ impl<'a> IrGenerator<'a> {
     fn gen_expr(&self, state: &mut GenFuncState, expr: &ast::Expr) {
         match expr {
             ast::Expr::IntLiteral(x) => {
-                state.instrs.push(Instr::IntConst(*x));
+                state
+                    .instrs
+                    .push(Instr::NonControl(NonControlInstr::IntConst(*x)));
             }
             ast::Expr::Ident(name) => {
                 let local_idx = state.locals.get(name).cloned().unwrap();
-                state.instrs.push(Instr::VarRef(local_idx));
+                state
+                    .instrs
+                    .push(Instr::NonControl(NonControlInstr::VarRef(local_idx)));
             }
             ast::Expr::BinaryOp(expr1, op, expr2) => {
                 self.gen_expr(state, expr1);
                 self.gen_expr(state, expr2);
                 match op {
-                    ast::BinaryOp::Add => state.instrs.push(Instr::Add),
-                    ast::BinaryOp::Sub => state.instrs.push(Instr::Sub),
-                    ast::BinaryOp::Mul => state.instrs.push(Instr::Mul),
-                    ast::BinaryOp::Div => state.instrs.push(Instr::Div),
-                    ast::BinaryOp::Mod => state.instrs.push(Instr::Mod),
-                    ast::BinaryOp::Lt => state.instrs.push(Instr::Lt),
-                    ast::BinaryOp::Gt => state.instrs.push(Instr::Gt),
-                    ast::BinaryOp::Le => state.instrs.push(Instr::Le),
-                    ast::BinaryOp::Ge => state.instrs.push(Instr::Ge),
-                    ast::BinaryOp::Eq => state.instrs.push(Instr::Eq),
-                    ast::BinaryOp::Ne => state.instrs.push(Instr::Ne),
-                    ast::BinaryOp::And => state.instrs.push(Instr::And),
-                    ast::BinaryOp::Or => state.instrs.push(Instr::Or),
+                    ast::BinaryOp::Add => {
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Add))
+                    }
+                    ast::BinaryOp::Sub => {
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Sub))
+                    }
+                    ast::BinaryOp::Mul => {
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Mul))
+                    }
+                    ast::BinaryOp::Div => {
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Div))
+                    }
+                    ast::BinaryOp::Mod => {
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Mod))
+                    }
+                    ast::BinaryOp::Lt => state.instrs.push(Instr::NonControl(NonControlInstr::Lt)),
+                    ast::BinaryOp::Gt => state.instrs.push(Instr::NonControl(NonControlInstr::Gt)),
+                    ast::BinaryOp::Le => state.instrs.push(Instr::NonControl(NonControlInstr::Le)),
+                    ast::BinaryOp::Ge => state.instrs.push(Instr::NonControl(NonControlInstr::Ge)),
+                    ast::BinaryOp::Eq => state.instrs.push(Instr::NonControl(NonControlInstr::Eq)),
+                    ast::BinaryOp::Ne => state.instrs.push(Instr::NonControl(NonControlInstr::Ne)),
+                    ast::BinaryOp::And => {
+                        state.instrs.push(Instr::NonControl(NonControlInstr::And))
+                    }
+                    ast::BinaryOp::Or => state.instrs.push(Instr::NonControl(NonControlInstr::Or)),
                 }
             }
             ast::Expr::PrefixOp(op, expr) => {
                 self.gen_expr(state, expr);
                 match op {
-                    ast::PrefixOp::Not => state.instrs.push(Instr::Not),
+                    ast::PrefixOp::Not => {
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Not))
+                    }
                     ast::PrefixOp::Minus => {
-                        state.instrs.push(Instr::Minus);
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Minus));
                     }
                 }
             }
             ast::Expr::Assign(ident, expr) => {
                 self.gen_expr(state, expr);
                 let local_idx = state.locals.get(ident).cloned().unwrap();
-                state.instrs.push(Instr::Assign(local_idx));
-                state.instrs.push(Instr::IntConst(0));
+                state
+                    .instrs
+                    .push(Instr::NonControl(NonControlInstr::Assign(local_idx)));
+                state
+                    .instrs
+                    .push(Instr::NonControl(NonControlInstr::IntConst(0)));
             }
             ast::Expr::Call(ident, exprs) => {
                 for expr in exprs {
@@ -131,7 +153,9 @@ impl<'a> IrGenerator<'a> {
                     }
                     FuncRef::Builtin { kind } => match kind {
                         BuiltinFunc::Println => {
-                            state.instrs.push(Instr::Println);
+                            state
+                                .instrs
+                                .push(Instr::NonControl(NonControlInstr::Println));
                         }
                     },
                 };
@@ -146,12 +170,14 @@ impl<'a> IrGenerator<'a> {
                 loop_info.loop_then = state.instrs.len();
                 state.instrs.push(Instr::LoopThen(loop_id));
                 self.gen_expr(state, body);
-                state.instrs.push(Instr::Drop);
+                state.instrs.push(Instr::NonControl(NonControlInstr::Drop));
                 loop_info.loop_end = state.instrs.len();
                 state.instrs.push(Instr::LoopEnd(loop_id));
                 state.loop_infos[loop_id] = loop_info;
 
-                state.instrs.push(Instr::IntConst(0));
+                state
+                    .instrs
+                    .push(Instr::NonControl(NonControlInstr::IntConst(0)));
             }
             ast::Expr::If(cond, body, else_body) => {
                 let if_id = state.if_infos.len();
@@ -172,17 +198,21 @@ impl<'a> IrGenerator<'a> {
                 Some((expr, last)) => {
                     for expr in last {
                         self.gen_expr(state, expr);
-                        state.instrs.push(Instr::Drop);
+                        state.instrs.push(Instr::NonControl(NonControlInstr::Drop));
                     }
                     self.gen_expr(state, expr);
                 }
-                None => state.instrs.push(Instr::IntConst(0)),
+                None => state
+                    .instrs
+                    .push(Instr::NonControl(NonControlInstr::IntConst(0))),
             },
             ast::Expr::Var(ident, expr1, expr2) => {
                 self.gen_expr(state, expr1);
                 let prev_locals = state.locals.clone();
                 let local_idx = state.add_local(ident.clone());
-                state.instrs.push(Instr::Assign(local_idx));
+                state
+                    .instrs
+                    .push(Instr::NonControl(NonControlInstr::Assign(local_idx)));
                 self.gen_expr(state, expr2);
                 state.locals = prev_locals;
             }
