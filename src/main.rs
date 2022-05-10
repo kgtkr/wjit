@@ -4,28 +4,6 @@ use wjit::*;
 
 fn main() {}
 
-extern "C" {
-    fn println(x: i32);
-}
-
-pub struct WasmBuiltin;
-
-impl interpreter::Builtin for WasmBuiltin {
-    fn println(&mut self, x: i32) {
-        unsafe {
-            println(x);
-        }
-    }
-}
-
-pub struct RustBuiltin;
-
-impl interpreter::Builtin for RustBuiltin {
-    fn println(&mut self, x: i32) {
-        println!("{}", x);
-    }
-}
-
 #[no_mangle]
 pub fn alloc(size: i32) -> *mut u8 {
     let mut buf = Vec::with_capacity(size as usize);
@@ -91,8 +69,10 @@ pub fn compile_func(compiler: *mut compiler::Compiler, idx: i32, len: *mut i32) 
 }
 
 #[no_mangle]
-pub fn make_interpreter(module: &ir::Module) -> *mut interpreter::Interpreter<WasmBuiltin> {
-    let interpreter = interpreter::Interpreter::new(module, WasmBuiltin);
+pub fn make_interpreter(
+    module: &ir::Module,
+) -> *mut interpreter::Interpreter<interpreter::WasmBuiltin> {
+    let interpreter = interpreter::Interpreter::new(module, interpreter::WasmBuiltin);
     let interpreter = Box::new(interpreter);
     let interpreter = Box::into_raw(interpreter);
 
@@ -102,7 +82,7 @@ pub fn make_interpreter(module: &ir::Module) -> *mut interpreter::Interpreter<Wa
 
 #[no_mangle]
 pub unsafe fn interpreter_call_func(
-    interpreter: &mut interpreter::Interpreter<WasmBuiltin>,
+    interpreter: &mut interpreter::Interpreter<interpreter::WasmBuiltin>,
     func: usize,
     args_count: usize,
     args: *const i32,

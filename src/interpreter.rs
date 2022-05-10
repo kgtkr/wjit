@@ -4,6 +4,32 @@ pub trait Builtin {
     fn println(&mut self, x: i32);
 }
 
+extern "C" {
+    fn println(x: i32);
+}
+
+#[derive(Debug, PartialEq, Clone, Eq)]
+
+pub struct WasmBuiltin;
+
+impl Builtin for WasmBuiltin {
+    fn println(&mut self, x: i32) {
+        unsafe {
+            println(x);
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Eq)]
+
+pub struct RustBuiltin;
+
+impl Builtin for RustBuiltin {
+    fn println(&mut self, x: i32) {
+        println!("{}", x);
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct PC {
     pub func: usize,
@@ -18,11 +44,11 @@ pub struct StackFrame {
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct Interpreter<'a, B: Builtin> {
-    pc: PC,
-    stack: Vec<i32>,
-    call_stack: Vec<StackFrame>,
-    module: &'a Module,
-    builtin: B,
+    pub pc: PC,
+    pub stack: Vec<i32>,
+    pub call_stack: Vec<StackFrame>,
+    pub module: &'a Module,
+    pub builtin: B,
 }
 
 impl<'a, B: Builtin> Interpreter<'a, B> {
